@@ -8,12 +8,7 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-var (
-	dbv      string
-	dbvs            = make(map[string]string)
-	dbname   string = "urlspath.db"
-	URLPaths        = make(map[string]string)
-)
+var dbname string = "urlspath.db"
 
 //datavaseProcesses creates a db, bucket, and inserts two k:v pairs from a map
 func databaseProcesses(dbname string, entries map[string]string) error {
@@ -52,6 +47,8 @@ func databaseProcesses(dbname string, entries map[string]string) error {
 func dbHandler(URLPaths map[string]string, fallback http.Handler) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		var dbv string
+		dbvalues := make(map[string]string)
 		db, err := bolt.Open(dbname, 0600, nil)
 		if err != nil {
 			log.Fatal(err)
@@ -62,14 +59,14 @@ func dbHandler(URLPaths map[string]string, fallback http.Handler) http.HandlerFu
 			b := tx.Bucket([]byte("MyBucket"))
 			for k := range URLPaths {
 				key := k
-				dbv = string(b.Get([]byte(key))) // this is overwriting dbv since it's just a string need to look at []string or something similar
-				dbvs[key] = dbv
+				dbv = string(b.Get([]byte(key)))
+				dbvalues[key] = dbv
 
 			}
 
 			return nil
 		})
-		for k, v := range dbvs {
+		for k, v := range dbvalues {
 			if r.URL.Path == k {
 				http.Redirect(w, r, string(v), http.StatusFound)
 			}
@@ -87,12 +84,14 @@ func hello(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	port := ":8000"
 	mux := defaultMux()
+
+	URLPaths := make(map[string]string)
 	URLPaths["/dbpathname"] = "https://google.com"
 	URLPaths["/otherdbpath"] = "https://google.com/robots.txt"
 
-	fmt.Println("executing newDB()")
-	fmt.Println(databaseProcesses(dbname, URLPaths))
-	fmt.Println("Starting the server on :8000")
-	http.ListenAndServe(":8000", dbHandler(URLPaths, mux))
+	databaseProcesses(dbname, URLPaths)
+	fmt.Printf("Starting the server on port: %v\n", port)
+	http.ListenAndServe(port, dbHandler(URLPaths, mux))
 }
