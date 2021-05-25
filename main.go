@@ -10,7 +10,7 @@ import (
 
 var dbname string = "urlspath.db"
 
-//datavaseProcesses creates a db, bucket, and inserts two k:v pairs from a map
+//datavaseProcesses creates a db, bucket, and inserts the k:v pairs from the provided map
 func databaseProcesses(dbname string, entries map[string]string) error {
 	db, err := bolt.Open(dbname, 0600, nil)
 	if err != nil {
